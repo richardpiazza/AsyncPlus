@@ -19,8 +19,8 @@ Swift library that extends async/await concurrency.
 
 ## Alternatives
 
-* [https://github.com/apple/swift-async-algorithms](Swift Async-Algorithms)
-* [https://github.com/AsyncCommunity/AsyncExtensions](AsyncCommunity/AsyncExtensions)
+* [Swift Async-Algorithms](https://github.com/apple/swift-async-algorithms)
+* [AsyncCommunity/AsyncExtensions](https://github.com/AsyncCommunity/AsyncExtensions)
 
 ## Installation
 
