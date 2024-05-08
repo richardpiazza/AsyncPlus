@@ -1,7 +1,7 @@
 import XCTest
 @testable import AsyncPlus
 
-final class AsyncPlusTests: XCTestCase {
+final class SequenceTests: XCTestCase {
     
     func testAsyncSequence() async throws {
         let sequence = PassthroughAsyncSequence<Int>()
