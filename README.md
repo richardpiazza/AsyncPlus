@@ -1,14 +1,9 @@
 # AsyncPlus
 
-Swift library that extends async/await concurrency.
+Swift library extending async/await concurrency features.
 
-<p>
- <img src="https://github.com/richardpiazza/AsyncPlus/workflows/Swift/badge.svg?branch=main" />
- <img src="https://img.shields.io/badge/Swift-5.6-orange.svg" />
- <a href="https://twitter.com/richardpiazza">
- <img src="https://img.shields.io/badge/twitter-@richardpiazza-blue.svg?style=flat" alt="Twitter: @richardpiazza" />
- </a>
-</p>
+[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Frichardpiazza%2FAsyncPlus%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/richardpiazza/AsyncPlus)
+[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Frichardpiazza%2FAsyncPlus%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/richardpiazza/AsyncPlus)
 
 ## Usage
 
@@ -16,6 +11,15 @@ Swift library that extends async/await concurrency.
 
 * [`PassthroughAsyncSequence`](Sources/AsyncPlus/PassthroughAsyncSequence.swift)
 * [`PassthroughAsyncThrowingSequence`](Sources/AsyncPlus/PassthroughAsyncThrowingSequence.swift)
+
+Wrappers around `Async[Throwing]Stream` that maintain continuation/termination logic.
+
+**Passthrough Subjects**
+
+* [`PassthroughAsyncSubject`](Sources/AsyncPlus/PassthroughAsyncSubject.swift)
+* [`PassthroughAsyncThrowingSubject`](Sources/AsyncPlus/PassthroughAsyncThrowingSubject.swift)
+
+Swift actor that maintains references to multiple passthrough sequences. This allows for a _shared_ publisher similar to **Combine** `PassthroughSubject`.
 
 ## Alternatives
 
@@ -31,7 +35,7 @@ You can add it using Xcode or by listing it as a dependency in your `Package.swi
 let package = Package(
   ...
   dependencies: [
-    .package(url: "https://github.com/richardpiazza/AsyncPlus.git", .upToNextMajor(from: "0.1.0")
+    .package(url: "https://github.com/richardpiazza/AsyncPlus.git", .upToNextMajor(from: "0.2.0")
   ],
   ...
   targets: [

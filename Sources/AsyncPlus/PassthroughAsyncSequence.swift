@@ -1,12 +1,12 @@
-/// AsyncSequence that functions similar to the `Combine` `PassthroughSubject`.
 public final class PassthroughAsyncSequence<Element>: AsyncSequence {
     
     public private(set) var stream: AsyncStream<Element>!
     private var continuation: AsyncStream<Element>.Continuation!
     private lazy var iterator = stream.makeAsyncIterator()
     
-    public init() {
+    public init(onTermination: (@Sendable (AsyncStream<Element>.Continuation.Termination) -> Void)? = nil) {
         stream = AsyncStream<Element> { token in
+            token.onTermination = onTermination
             continuation = token
         }
     }
