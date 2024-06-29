@@ -21,6 +21,13 @@ Wrappers around `Async[Throwing]Stream` that maintain continuation/termination l
 
 Swift actor that maintains references to multiple passthrough sequences. This allows for a _shared_ publisher similar to **Combine** `PassthroughSubject`.
 
+**Current Value Subjects**
+
+* [`CurrentValueAsyncSubject`](Sources/AsyncPlus/CurrentValueAsyncSubject.swift)
+* [`CurrentValueAsyncThrowingSubject`](Sources/AsyncPlus/CurrentValueAsyncThrowingSubject.swift)
+
+Swift actor that maintains references to multiple streams. This allows for a _shared_ publisher similar to **Combine** `CurrentValueSubject`.
+
 ## Alternatives
 
 * [Swift Async-Algorithms](https://github.com/apple/swift-async-algorithms)
