@@ -5,7 +5,11 @@ public final actor CurrentValueAsyncThrowingSubject<Output> {
     
     public private(set) var value: Output
     
+    #if swift(>=5.9)
     internal private(set) var subscriptions: [UUID: AsyncThrowingStream<Output, Error>.Continuation] = [:]
+    #else
+    internal private(set) var subscriptions: [UUID: PassthroughAsyncThrowingSequence<Output>] = [:]
+    #endif
     
     public init(_ value: Output) {
         self.value = value
@@ -17,6 +21,8 @@ public final actor CurrentValueAsyncThrowingSubject<Output> {
     /// or the subject has not _finished_.
     public func sink() -> AsyncThrowingStream<Output, Error> {
         let id = UUID()
+        
+        #if swift(>=5.9)
         let sequence = AsyncThrowingStream.makeStream(of: Output.self)
         sequence.continuation.onTermination = { [weak self] _ in
             guard let self else {
@@ -32,6 +38,22 @@ public final actor CurrentValueAsyncThrowingSubject<Output> {
         defer {
             sequence.continuation.yield(value)
         }
+        #else
+        let sequence = PassthroughAsyncThrowingSequence<Output> { [weak self] _ in
+            guard let self else {
+                return
+            }
+            
+            Task {
+                await self.terminate(id)
+            }
+        }
+        subscriptions[id] = sequence
+        
+        defer {
+            sequence.yield(value)
+        }
+        #endif
         
         return sequence.stream
     }
@@ -44,8 +66,8 @@ public final actor CurrentValueAsyncThrowingSubject<Output> {
             return
         }
         
-        for (_, sequence) in subscriptions {
-            sequence.yield(value)
+        for (_, continuation) in subscriptions {
+            continuation.yield(value)
         }
     }
     
@@ -56,8 +78,8 @@ public final actor CurrentValueAsyncThrowingSubject<Output> {
             return
         }
         
-        for (_, sequence) in subscriptions {
-            sequence.finish(throwing: error)
+        for (_, continuation) in subscriptions {
+            continuation.finish(throwing: error)
         }
         
         subscriptions.removeAll()

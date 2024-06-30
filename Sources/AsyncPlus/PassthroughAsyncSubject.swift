@@ -6,7 +6,11 @@ import Foundation
 /// initial value or a buffer of the most recently-published element.
 public final actor PassthroughAsyncSubject<Output> {
     
+    #if swift(>=5.9)
     internal private(set) var subscriptions: [UUID: AsyncStream<Output>.Continuation] = [:]
+    #else
+    internal private(set) var subscriptions: [UUID: PassthroughAsyncSequence<Output>] = [:]
+    #endif
     
     public init() {
     }
@@ -17,6 +21,8 @@ public final actor PassthroughAsyncSubject<Output> {
     /// or the subject has not _finished_.
     public func sink() -> AsyncStream<Output> {
         let id = UUID()
+        
+        #if swift(>=5.9)
         let sequence = AsyncStream.makeStream(of: Output.self)
         sequence.continuation.onTermination = { [weak self] _ in
             guard let self else {
@@ -27,8 +33,19 @@ public final actor PassthroughAsyncSubject<Output> {
                 await self.terminate(id)
             }
         }
-        
         subscriptions[id] = sequence.continuation
+        #else
+        let sequence = PassthroughAsyncSequence<Output> { [weak self] _ in
+            guard let self else {
+                return
+            }
+            
+            Task {
+                await self.terminate(id)
+            }
+        }
+        subscriptions[id] = sequence
+        #endif
         
         return sequence.stream
     }

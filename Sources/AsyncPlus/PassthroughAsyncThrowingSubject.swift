@@ -3,7 +3,11 @@ import Foundation
 /// An actor which maintains and yeilds output to multiple `AsyncThrowingStream` subscriptions.
 public final actor PassthroughAsyncThrowingSubject<Output> {
     
+    #if swift(>=5.9)
     internal private(set) var subscriptions: [UUID: AsyncThrowingStream<Output, Error>.Continuation] = [:]
+    #else
+    internal private(set) var subscriptions: [UUID: PassthroughAsyncThrowingSequence<Output>] = [:]
+    #endif
     
     public init() {
     }
@@ -14,6 +18,8 @@ public final actor PassthroughAsyncThrowingSubject<Output> {
     /// or the subject has not _finished_.
     public func sink() -> AsyncThrowingStream<Output, Error> {
         let id = UUID()
+        
+        #if swift(>=5.9)
         let sequence = AsyncThrowingStream.makeStream(of: Output.self, throwing: Error.self)
         sequence.continuation.onTermination = { [weak self] _ in
             guard let self else {
@@ -24,8 +30,19 @@ public final actor PassthroughAsyncThrowingSubject<Output> {
                 await self.terminate(id)
             }
         }
-        
         subscriptions[id] = sequence.continuation
+        #else
+        let sequence = PassthroughAsyncThrowingSequence<Output> { [weak self] _ in
+            guard let self else {
+                return
+            }
+            
+            Task {
+                await self.terminate(id)
+            }
+        }
+        subscriptions[id] = sequence
+        #endif
         
         return sequence.stream
     }
@@ -36,8 +53,8 @@ public final actor PassthroughAsyncThrowingSubject<Output> {
             return
         }
         
-        for (_, sequence) in subscriptions {
-            sequence.yield(value)
+        for (_, continuation) in subscriptions {
+            continuation.yield(value)
         }
     }
     
@@ -48,8 +65,8 @@ public final actor PassthroughAsyncThrowingSubject<Output> {
             return
         }
         
-        for (_, sequence) in subscriptions {
-            sequence.finish(throwing: error)
+        for (_, continuation) in subscriptions {
+            continuation.finish(throwing: error)
         }
         
         subscriptions.removeAll()
