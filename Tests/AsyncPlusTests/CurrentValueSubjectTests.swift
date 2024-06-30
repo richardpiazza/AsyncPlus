@@ -26,13 +26,13 @@ final class CurrentValueSubjectTests: XCTestCase {
         value = await subject.value
         XCTAssertEqual(value, 1)
         
-        var subscriberCount = await subject.subscriberCount()
+        var subscriberCount = await subject.subscriptions.count
         XCTAssertEqual(subscriberCount, 1)
         
         subscription1.cancel()
         try await Task.sleep(for: .seconds(0.1))
         
-        subscriberCount = await subject.subscriberCount()
+        subscriberCount = await subject.subscriptions.count
         XCTAssertEqual(subscriberCount, 0)
         
         let values = await subscription1.value
@@ -82,32 +82,47 @@ final class CurrentValueSubjectTests: XCTestCase {
         XCTAssertEqual(subscription2Values, [1, 2])
     }
     
-//    func testThrowingTerminatesSubscribers() async throws {
-//        struct ExpectedError: Error {}
-//        
-//        let subject = CurrentValueAsyncThrowingSubject(0, throwing: ExpectedError.self)
-//        
-//        let subscription1 = Task {
-//            var output: [Int] = []
-//            
-//            for await element in await subject.sink() {
-//                output.append(element)
-//            }
-//            
-//            return output
-//        }
-//        
-//        let subscription2 = Task {
-//            var output: [Int] = []
-//            
-//            for await element in await subject.sink() {
-//                output.append(element)
-//            }
-//            
-//            return output
-//        }
-//        
-//        try await Task.sleep(for: .seconds(0.1))
-//        await subject.yield(1)
-//    }
+    func testThrowingTerminatesSubscribers() async throws {
+        struct ExpectedError: Error {}
+        
+        let subject = CurrentValueAsyncThrowingSubject(0)
+        
+        let subscription1 = Task {
+            var output: [Int] = []
+            
+            for try await element in await subject.sink() {
+                output.append(element)
+            }
+            
+            return output
+        }
+        
+        let subscription2 = Task {
+            var output: [Int] = []
+            
+            for try await element in await subject.sink() {
+                output.append(element)
+            }
+            
+            return output
+        }
+        
+        try await Task.sleep(for: .seconds(0.1))
+        await subject.yield(1)
+        
+        await subject.finish(throwing: ExpectedError())
+        try await Task.sleep(for: .seconds(0.1))
+        
+        do {
+            _ = try await subscription1.value
+            XCTFail("Error Expected")
+        } catch _ as ExpectedError {
+        }
+        
+        do {
+            _ = try await subscription2.value
+            XCTFail("Error Expected")
+        } catch _ as ExpectedError {
+        }
+    }
 }

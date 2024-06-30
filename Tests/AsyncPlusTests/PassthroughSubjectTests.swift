@@ -21,7 +21,7 @@ final class PassthroughSubjectTests: XCTestCase {
         await subject.yield(2)
         await subject.yield(3)
         await subject.finish()
-        let subscriberCount = await subject.subscriberCount()
+        let subscriberCount = await subject.subscriptions.count
         
         let values = await task1.value
         XCTAssertEqual(values.count, 3)
@@ -59,7 +59,7 @@ final class PassthroughSubjectTests: XCTestCase {
         await subject.yield(2)
         await subject.yield(3)
         await subject.finish()
-        let subscriberCount = await subject.subscriberCount()
+        let subscriberCount = await subject.subscriptions.count
         
         let values1 = await task1.value
         XCTAssertEqual(values1.count, 3)
@@ -92,7 +92,7 @@ final class PassthroughSubjectTests: XCTestCase {
         task1.cancel()
         
         try await Task.sleep(nanoseconds: 500_000_000)
-        let subscriberCount = await subject.subscriberCount()
+        let subscriberCount = await subject.subscriptions.count
         XCTAssertEqual(subscriberCount, 0)
         
         await subject.yield(3)

@@ -1,15 +1,24 @@
 import Foundation
 
+/// An actor which maintains and yeilds output to multiple `AsyncStream` subscriptions.
+///
+/// Unlinke a `PassthroughAsyncSubject` a intial/last output is available as reference and
+/// automatically yielded on any new subscription.
 public final actor CurrentValueAsyncSubject<Output> {
     
+    /// The intial or last `Output` to be yeilded to subscribers.
     public private(set) var value: Output
     
-    private var subscriptions: [UUID: AsyncStream<Output>.Continuation] = [:]
+    internal private(set) var subscriptions: [UUID: AsyncStream<Output>.Continuation] = [:]
     
     public init(_ value: Output) {
         self.value = value
     }
     
+    /// Vends a new `AsyncStream` that will recieve the current `value` and all future output.
+    ///
+    /// The stream will be _alive_ as long as the downstream reference is maintained
+    /// or the subject has not _finished_.
     public func sink() -> AsyncStream<Output> {
         let id = UUID()
         let sequence = AsyncStream.makeStream(of: Output.self)
@@ -32,6 +41,7 @@ public final actor CurrentValueAsyncSubject<Output> {
         return sequence.stream
     }
     
+    /// Resumes all subscriber tasks and sends the provided value.
     public func yield(_ value: Output) {
         self.value = value
         
@@ -44,6 +54,7 @@ public final actor CurrentValueAsyncSubject<Output> {
         }
     }
     
+    /// Resumes all subscriber tasks with a `nil` value indicating the termination of the stream.
     public func finish() {
         guard !subscriptions.isEmpty else {
             return
@@ -54,10 +65,6 @@ public final actor CurrentValueAsyncSubject<Output> {
         }
         
         subscriptions.removeAll()
-    }
-    
-    internal func subscriberCount() -> Int {
-        subscriptions.count
     }
     
     private func terminate(_ id: UUID) {
