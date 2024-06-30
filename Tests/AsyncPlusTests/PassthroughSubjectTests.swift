@@ -3,8 +3,14 @@ import XCTest
 
 final class PassthroughSubjectTests: XCTestCase {
     
+    /// Verify that a single subscriber task behaves as expected.
+    ///
+    /// This also validates the `onNoSubscribers` implementation.
     func testSingleSubscriber() async throws {
-        let subject = PassthroughAsyncSubject<Int>()
+        var noSubscribersIndicated = false
+        let subject: PassthroughAsyncSubject<Int> = PassthroughAsyncSubject {
+            noSubscribersIndicated = true
+        }
         
         let task1 = Task {
             var output: [Int] = []
@@ -27,8 +33,10 @@ final class PassthroughSubjectTests: XCTestCase {
         XCTAssertEqual(values.count, 3)
         XCTAssertEqual(values, [1, 2, 3])
         XCTAssertEqual(subscriberCount, 0)
+        XCTAssertTrue(noSubscribersIndicated)
     }
     
+    /// Verify that multiple subscriber tasks receive the same output.
     func testMultipleSubscribers() async throws {
         let subject = PassthroughAsyncSubject<Int>()
         
@@ -72,6 +80,7 @@ final class PassthroughSubjectTests: XCTestCase {
         XCTAssertEqual(subscriberCount, 0)
     }
     
+    /// Verify a canceled subscriber task is removed from the subject.
     func testCanceledTaskRemovesSubscriber() async throws {
         let subject = PassthroughAsyncSubject<Int>()
         

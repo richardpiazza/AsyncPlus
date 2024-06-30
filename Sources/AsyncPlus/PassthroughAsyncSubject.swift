@@ -1,10 +1,13 @@
 import Foundation
 
-/// An actor which maintains and yeilds output to multiple `AsyncStream` subscriptions.
+/// An actor which maintains and yields output to multiple `AsyncStream` subscriptions.
 ///
 /// Unlike `CurrentValueAsyncSubject`, a `PassthroughAsyncSubject` doesn’t have an
 /// initial value or a buffer of the most recently-published element.
 public final actor PassthroughAsyncSubject<Output> {
+    
+    /// Function executed any time the number of subscribers reaches zero (0).
+    public var onNoSubscriptions: (() -> Void)?
     
     #if swift(>=5.9)
     internal private(set) var subscriptions: [UUID: AsyncStream<Output>.Continuation] = [:]
@@ -12,10 +15,15 @@ public final actor PassthroughAsyncSubject<Output> {
     internal private(set) var subscriptions: [UUID: PassthroughAsyncSequence<Output>] = [:]
     #endif
     
-    public init() {
+    /// Initialize a `PassthroughAsyncSubject`
+    ///
+    /// - parameters:
+    ///   - onNoSubscription: Function executed any time the number of subscribers reaches zero (0).
+    public init(onNoSubscriptions: (() -> Void)? =  nil) {
+        self.onNoSubscriptions = onNoSubscriptions
     }
     
-    /// Vends a new `AsyncStream` that will recieve all future output.
+    /// Vends a new `AsyncStream` that will receive all future output.
     ///
     /// The stream will be _alive_ as long as the downstream reference is maintained
     /// or the subject has not _finished_.
@@ -76,5 +84,9 @@ public final actor PassthroughAsyncSubject<Output> {
     
     private func terminate(_ id: UUID) {
         subscriptions[id] = nil
+        
+        if subscriptions.isEmpty {
+            onNoSubscriptions?()
+        }
     }
 }

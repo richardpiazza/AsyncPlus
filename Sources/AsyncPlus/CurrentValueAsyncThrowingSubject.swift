@@ -1,9 +1,13 @@
 import Foundation
 
-/// An actor which maintains and yeilds output to multiple `AsyncThrowingStream` subscriptions.
+/// An actor which maintains and yields output to multiple `AsyncThrowingStream` subscriptions.
 public final actor CurrentValueAsyncThrowingSubject<Output> {
     
+    /// The initial or last `Output` to be yielded to subscribers.
     public private(set) var value: Output
+    
+    /// Function executed any time the number of subscribers reaches zero (0).
+    public var onNoSubscriptions: (() -> Void)?
     
     #if swift(>=5.9)
     internal private(set) var subscriptions: [UUID: AsyncThrowingStream<Output, Error>.Continuation] = [:]
@@ -11,11 +15,17 @@ public final actor CurrentValueAsyncThrowingSubject<Output> {
     internal private(set) var subscriptions: [UUID: PassthroughAsyncThrowingSequence<Output>] = [:]
     #endif
     
-    public init(_ value: Output) {
+    /// Initialize a `CurrentValueAsyncThrowingSubject`.
+    ///
+    /// - parameters:
+    ///   - value: The initial `Output` that will stored.
+    ///   - onNoSubscription: Function executed any time the number of subscribers reaches zero (0).
+    public init(_ value: Output, onNoSubscriptions: (() -> Void)? =  nil) {
         self.value = value
+        self.onNoSubscriptions = onNoSubscriptions
     }
     
-    /// Vends a new `AsyncThrowingStream` that will recieve the current `value` all future output/errors.
+    /// Vends a new `AsyncThrowingStream` that will receive the current `value` all future output/errors.
     ///
     /// The stream will be _alive_ as long as the downstream reference is maintained
     /// or the subject has not _finished_.
@@ -87,5 +97,9 @@ public final actor CurrentValueAsyncThrowingSubject<Output> {
     
     private func terminate(_ id: UUID) {
         subscriptions[id] = nil
+        
+        if subscriptions.isEmpty {
+            onNoSubscriptions?()
+        }
     }
 }

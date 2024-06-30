@@ -1,13 +1,16 @@
 import Foundation
 
-/// An actor which maintains and yeilds output to multiple `AsyncStream` subscriptions.
+/// An actor which maintains and yields output to multiple `AsyncStream` subscriptions.
 ///
-/// Unlinke a `PassthroughAsyncSubject` a intial/last output is available as reference and
+/// Unlike a `PassthroughAsyncSubject` a initial/last output is available as reference and
 /// automatically yielded on any new subscription.
 public final actor CurrentValueAsyncSubject<Output> {
     
-    /// The intial or last `Output` to be yeilded to subscribers.
+    /// The initial or last `Output` to be yielded to subscribers.
     public private(set) var value: Output
+    
+    /// Function executed any time the number of subscribers reaches zero (0).
+    public var onNoSubscriptions: (() -> Void)?
     
     #if swift(>=5.9)
     internal private(set) var subscriptions: [UUID: AsyncStream<Output>.Continuation] = [:]
@@ -15,11 +18,17 @@ public final actor CurrentValueAsyncSubject<Output> {
     internal private(set) var subscriptions: [UUID: PassthroughAsyncSequence<Output>] = [:]
     #endif
     
-    public init(_ value: Output) {
+    /// Initialize a `CurrentValueAsyncSubject`.
+    ///
+    /// - parameters:
+    ///   - value: The initial `Output` that will stored.
+    ///   - onNoSubscription: Function executed any time the number of subscribers reaches zero (0).
+    public init(_ value: Output, onNoSubscriptions: (() -> Void)? =  nil) {
         self.value = value
+        self.onNoSubscriptions = onNoSubscriptions
     }
     
-    /// Vends a new `AsyncStream` that will recieve the current `value` and all future output.
+    /// Vends a new `AsyncStream` that will receive the current `value` and all future output.
     ///
     /// The stream will be _alive_ as long as the downstream reference is maintained
     /// or the subject has not _finished_.
@@ -90,5 +99,9 @@ public final actor CurrentValueAsyncSubject<Output> {
     
     private func terminate(_ id: UUID) {
         subscriptions[id] = nil
+        
+        if subscriptions.isEmpty {
+            onNoSubscriptions?()
+        }
     }
 }

@@ -82,10 +82,16 @@ final class CurrentValueSubjectTests: XCTestCase {
         XCTAssertEqual(subscription2Values, [1, 2])
     }
     
+    /// Verify that subscriber tasks terminate with errors.
+    ///
+    /// This also validates that the `onNoSubscription` handler executes as expected.
     func testThrowingTerminatesSubscribers() async throws {
         struct ExpectedError: Error {}
         
-        let subject = CurrentValueAsyncThrowingSubject(0)
+        var noSubscribersIndicated = false
+        let subject: CurrentValueAsyncThrowingSubject<Int> = CurrentValueAsyncThrowingSubject(0) {
+            noSubscribersIndicated = true
+        }
         
         let subscription1 = Task {
             var output: [Int] = []
@@ -124,5 +130,7 @@ final class CurrentValueSubjectTests: XCTestCase {
             XCTFail("Error Expected")
         } catch _ as ExpectedError {
         }
+        
+        XCTAssertTrue(noSubscribersIndicated)
     }
 }
