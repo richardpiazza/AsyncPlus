@@ -80,9 +80,14 @@ public final actor PassthroughAsyncSubject<Output> {
         }
         
         subscriptions.removeAll()
+        onNoSubscriptions?()
     }
     
     private func terminate(_ id: UUID) {
+        guard !subscriptions.isEmpty else {
+            return
+        }
+        
         subscriptions[id] = nil
         
         if subscriptions.isEmpty {
