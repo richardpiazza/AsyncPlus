@@ -1,6 +1,7 @@
 import XCTest
 @testable import AsyncPlus
 
+@available(*, deprecated)
 final class PassthroughSequenceTests: XCTestCase {
     
     func testAsyncSequence() async throws {

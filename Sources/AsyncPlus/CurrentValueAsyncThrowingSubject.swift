@@ -1,19 +1,15 @@
 import Foundation
 
 /// An actor which maintains and yields output to multiple `AsyncThrowingStream` subscriptions.
-public final actor CurrentValueAsyncThrowingSubject<Output> {
+public final actor CurrentValueAsyncThrowingSubject<Output: Sendable> {
     
     /// The initial or last `Output` to be yielded to subscribers.
     public private(set) var value: Output
     
     /// Function executed any time the number of subscribers reaches zero (0).
-    public var onNoSubscriptions: (() -> Void)?
+    private var onNoSubscriptions: (() -> Void)?
     
-    #if swift(>=5.9)
     internal private(set) var subscriptions: [UUID: AsyncThrowingStream<Output, Error>.Continuation] = [:]
-    #else
-    internal private(set) var subscriptions: [UUID: PassthroughAsyncThrowingSequence<Output>] = [:]
-    #endif
     
     /// Initialize a `CurrentValueAsyncThrowingSubject`.
     ///
@@ -32,7 +28,6 @@ public final actor CurrentValueAsyncThrowingSubject<Output> {
     public func sink() -> AsyncThrowingStream<Output, Error> {
         let id = UUID()
         
-        #if swift(>=5.9)
         let sequence = AsyncThrowingStream.makeStream(of: Output.self)
         sequence.continuation.onTermination = { [weak self] _ in
             guard let self else {
@@ -48,24 +43,12 @@ public final actor CurrentValueAsyncThrowingSubject<Output> {
         defer {
             sequence.continuation.yield(value)
         }
-        #else
-        let sequence = PassthroughAsyncThrowingSequence<Output> { [weak self] _ in
-            guard let self else {
-                return
-            }
-            
-            Task {
-                await self.terminate(id)
-            }
-        }
-        subscriptions[id] = sequence
-        
-        defer {
-            sequence.yield(value)
-        }
-        #endif
         
         return sequence.stream
+    }
+    
+    public func setOnNoSubscriptions(_ handler: (() -> Void)?) {
+        onNoSubscriptions = handler
     }
     
     /// Resumes all subscriber tasks and sends the provided value.

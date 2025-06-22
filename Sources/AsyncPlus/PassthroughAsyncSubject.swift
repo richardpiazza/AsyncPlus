@@ -4,16 +4,12 @@ import Foundation
 ///
 /// Unlike `CurrentValueAsyncSubject`, a `PassthroughAsyncSubject` doesn’t have an
 /// initial value or a buffer of the most recently-published element.
-public final actor PassthroughAsyncSubject<Output> {
+public final actor PassthroughAsyncSubject<Output: Sendable> {
     
     /// Function executed any time the number of subscribers reaches zero (0).
     public var onNoSubscriptions: (() -> Void)?
     
-    #if swift(>=5.9)
     internal private(set) var subscriptions: [UUID: AsyncStream<Output>.Continuation] = [:]
-    #else
-    internal private(set) var subscriptions: [UUID: PassthroughAsyncSequence<Output>] = [:]
-    #endif
     
     /// Initialize a `PassthroughAsyncSubject`
     ///
@@ -30,7 +26,6 @@ public final actor PassthroughAsyncSubject<Output> {
     public func sink() -> AsyncStream<Output> {
         let id = UUID()
         
-        #if swift(>=5.9)
         let sequence = AsyncStream.makeStream(of: Output.self)
         sequence.continuation.onTermination = { [weak self] _ in
             guard let self else {
@@ -42,18 +37,6 @@ public final actor PassthroughAsyncSubject<Output> {
             }
         }
         subscriptions[id] = sequence.continuation
-        #else
-        let sequence = PassthroughAsyncSequence<Output> { [weak self] _ in
-            guard let self else {
-                return
-            }
-            
-            Task {
-                await self.terminate(id)
-            }
-        }
-        subscriptions[id] = sequence
-        #endif
         
         return sequence.stream
     }
