@@ -4,19 +4,15 @@ import Foundation
 ///
 /// Unlike a `PassthroughAsyncSubject` a initial/last output is available as reference and
 /// automatically yielded on any new subscription.
-public final actor CurrentValueAsyncSubject<Output> {
+public final actor CurrentValueAsyncSubject<Output: Sendable> {
     
     /// The initial or last `Output` to be yielded to subscribers.
     public private(set) var value: Output
     
     /// Function executed any time the number of subscribers reaches zero (0).
-    public var onNoSubscriptions: (() -> Void)?
+    private var onNoSubscriptions: (() -> Void)?
     
-    #if swift(>=5.9)
     internal private(set) var subscriptions: [UUID: AsyncStream<Output>.Continuation] = [:]
-    #else
-    internal private(set) var subscriptions: [UUID: PassthroughAsyncSequence<Output>] = [:]
-    #endif
     
     /// Initialize a `CurrentValueAsyncSubject`.
     ///
@@ -35,7 +31,6 @@ public final actor CurrentValueAsyncSubject<Output> {
     public func sink() -> AsyncStream<Output> {
         let id = UUID()
         
-        #if swift(>=5.9)
         let sequence = AsyncStream.makeStream(of: Output.self)
         sequence.continuation.onTermination = { [weak self] _ in
             guard let self else {
@@ -51,24 +46,12 @@ public final actor CurrentValueAsyncSubject<Output> {
         defer {
             sequence.continuation.yield(value)
         }
-        #else
-        let sequence = PassthroughAsyncSequence<Output> { [weak self] _ in
-            guard let self else {
-                return
-            }
-            
-            Task {
-                await self.terminate(id)
-            }
-        }
-        subscriptions[id] = sequence
-        
-        defer {
-            sequence.yield(value)
-        }
-        #endif
         
         return sequence.stream
+    }
+    
+    public func setOnNoSubscriptions(_ handler: (() -> Void)?) {
+        onNoSubscriptions = handler
     }
     
     /// Resumes all subscriber tasks and sends the provided value.

@@ -1,6 +1,7 @@
 /// Wrapper around `AsyncThrowingStream` which maintains references to the stream and continuation.
 ///
 /// This is primarily used with Swift 5.8 and lower.
+@available(*, deprecated)
 public final class PassthroughAsyncThrowingSequence<Element>: AsyncSequence {
     
     public private(set) var stream: AsyncThrowingStream<Element, Error>!

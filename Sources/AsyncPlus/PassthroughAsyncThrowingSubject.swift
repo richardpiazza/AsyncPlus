@@ -1,16 +1,12 @@
 import Foundation
 
 /// An actor which maintains and yields output to multiple `AsyncThrowingStream` subscriptions.
-public final actor PassthroughAsyncThrowingSubject<Output> {
+public final actor PassthroughAsyncThrowingSubject<Output: Sendable> {
     
     /// Function executed any time the number of subscribers reaches zero (0).
     public var onNoSubscriptions: (() -> Void)?
     
-    #if swift(>=5.9)
     internal private(set) var subscriptions: [UUID: AsyncThrowingStream<Output, Error>.Continuation] = [:]
-    #else
-    internal private(set) var subscriptions: [UUID: PassthroughAsyncThrowingSequence<Output>] = [:]
-    #endif
     
     /// Initialize a `PassthroughAsyncThrowingSubject`
     ///
@@ -27,7 +23,6 @@ public final actor PassthroughAsyncThrowingSubject<Output> {
     public func sink() -> AsyncThrowingStream<Output, Error> {
         let id = UUID()
         
-        #if swift(>=5.9)
         let sequence = AsyncThrowingStream.makeStream(of: Output.self, throwing: Error.self)
         sequence.continuation.onTermination = { [weak self] _ in
             guard let self else {
@@ -39,18 +34,6 @@ public final actor PassthroughAsyncThrowingSubject<Output> {
             }
         }
         subscriptions[id] = sequence.continuation
-        #else
-        let sequence = PassthroughAsyncThrowingSequence<Output> { [weak self] _ in
-            guard let self else {
-                return
-            }
-            
-            Task {
-                await self.terminate(id)
-            }
-        }
-        subscriptions[id] = sequence
-        #endif
         
         return sequence.stream
     }
