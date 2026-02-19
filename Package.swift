@@ -10,7 +10,7 @@ let package = Package(
         .macCatalyst(.v16),
         .iOS(.v16),
         .tvOS(.v16),
-        .watchOS(.v9)
+        .watchOS(.v9),
     ],
     products: [
         // Products define the executables and libraries a package produces, and make them visible to other packages.
@@ -29,7 +29,7 @@ let package = Package(
             name: "AsyncPlus",
             dependencies: [],
             swiftSettings: [
-                .enableExperimentalFeature("StrictConcurrency")
+                .enableExperimentalFeature("StrictConcurrency"),
             ]
         ),
         .testTarget(
