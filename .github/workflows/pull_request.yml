@@ -15,6 +15,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
       - name: Lint
+        shell: bash
         run: swiftformat --lint . --reporter github-actions-log
 
   Swift:
@@ -41,10 +42,13 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-spm-
     - name: Package Resolution
+      shell: bash
       run: swift package resolve
     - name: Build
+      shell: bash
       run: swift build
     - name: Test
+      shell: bash
       run: swift test
 
   Xcode:
@@ -75,8 +79,10 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-spm-
     - name: Package Resolution
-      run: set -o pipefail && xcodebuild -resolvePackageDependencies | xcbeautify
+      shell: bash
+      run: xcodebuild -resolvePackageDependencies | xcbeautify
     - name: Build
+      shell: bash
       env:
         DESTINATION: "generic/platform=${{ matrix.platform }}"
-      run: set -o pipefail && xcodebuild build -scheme "$SCHEME" -destination "$DESTINATION" | xcbeautify
+      run: xcodebuild build -scheme "$SCHEME" -destination "$DESTINATION" | xcbeautify

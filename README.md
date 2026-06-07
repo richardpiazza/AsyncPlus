@@ -7,26 +7,19 @@ Swift library extending async/await concurrency features.
 
 ## Usage
 
-**Passthrough Sequences**:
-
-* [`PassthroughAsyncSequence`](Sources/AsyncPlus/PassthroughAsyncSequence.swift)
-* [`PassthroughAsyncThrowingSequence`](Sources/AsyncPlus/PassthroughAsyncThrowingSequence.swift)
-
-Wrappers around `Async[Throwing]Stream` that maintain continuation/termination logic.
-
 **Passthrough Subjects**
 
 * [`PassthroughAsyncSubject`](Sources/AsyncPlus/PassthroughAsyncSubject.swift)
 * [`PassthroughAsyncThrowingSubject`](Sources/AsyncPlus/PassthroughAsyncThrowingSubject.swift)
 
-Swift actor that maintains references to multiple passthrough sequences. This allows for a _shared_ publisher similar to **Combine** `PassthroughSubject`.
+Swift types that maintains references to multiple passthrough sequences. This allows for a _shared_ publisher similar to **Combine** `PassthroughSubject`.
 
 **Current Value Subjects**
 
 * [`CurrentValueAsyncSubject`](Sources/AsyncPlus/CurrentValueAsyncSubject.swift)
 * [`CurrentValueAsyncThrowingSubject`](Sources/AsyncPlus/CurrentValueAsyncThrowingSubject.swift)
 
-Swift actor that maintains references to multiple streams. This allows for a _shared_ publisher similar to **Combine** `CurrentValueSubject`.
+Swift types that maintains references to multiple streams. This allows for a _shared_ publisher similar to **Combine** `CurrentValueSubject`.
 
 ## Alternatives
 
@@ -42,7 +35,7 @@ You can add it using Xcode or by listing it as a dependency in your `Package.swi
 let package = Package(
   ...
   dependencies: [
-    .package(url: "https://github.com/richardpiazza/AsyncPlus.git", .upToNextMajor(from: "0.2.0")
+    .package(url: "https://github.com/richardpiazza/AsyncPlus.git", .upToNextMajor(from: "0.5.0")
   ],
   ...
   targets: [

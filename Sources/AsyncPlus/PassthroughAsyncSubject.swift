@@ -1,22 +1,27 @@
 import Foundation
+import Mutex
 
-/// An actor which maintains and yields output to multiple `AsyncStream` subscriptions.
+/// Type which maintains and yields output to multiple `AsyncStream` subscriptions.
 ///
 /// Unlike `CurrentValueAsyncSubject`, a `PassthroughAsyncSubject` doesn’t have an
 /// initial value or a buffer of the most recently-published element.
-public final actor PassthroughAsyncSubject<Output: Sendable> {
+public final class PassthroughAsyncSubject<Output: Sendable>: Sendable {
 
-    /// Function executed any time the number of subscribers reaches zero (0).
-    public var onNoSubscriptions: (() -> Void)?
+    /// The number of subscribers.
+    public var subscribers: Int {
+        subscriptions.withLock { $0.count }
+    }
 
-    private(set) var subscriptions: [UUID: AsyncStream<Output>.Continuation] = [:]
+    private let subscriptions: Mutex<[UUID: AsyncStream<Output>.Continuation]>
+    private let onNoSubscriptions: Mutex<(() -> Void)?>
 
     /// Initialize a `PassthroughAsyncSubject`
     ///
     /// - parameters:
     ///   - onNoSubscription: Function executed any time the number of subscribers reaches zero (0).
-    public init(onNoSubscriptions: (() -> Void)? = nil) {
-        self.onNoSubscriptions = onNoSubscriptions
+    public init(onNoSubscriptions: (@Sendable () -> Void)? = nil) {
+        subscriptions = Mutex([:])
+        self.onNoSubscriptions = Mutex(onNoSubscriptions)
     }
 
     /// Vends a new `AsyncStream` that will receive all future output.
@@ -28,53 +33,62 @@ public final actor PassthroughAsyncSubject<Output: Sendable> {
 
         let sequence = AsyncStream.makeStream(of: Output.self)
         sequence.continuation.onTermination = { [weak self] _ in
-            guard let self else {
-                return
-            }
-
-            Task {
-                await self.terminate(id)
-            }
+            self?.terminate(id)
         }
-        subscriptions[id] = sequence.continuation
+
+        subscriptions.withLock {
+            $0[id] = sequence.continuation
+        }
 
         return sequence.stream
     }
 
     /// Resumes all subscriber tasks and sends the provided value.
     public func yield(_ value: Output) {
-        guard !subscriptions.isEmpty else {
+        let subs = subscriptions.withLock { $0 }
+
+        guard !subs.isEmpty else {
             return
         }
 
-        for (_, continuation) in subscriptions {
+        for (_, continuation) in subs {
             continuation.yield(value)
         }
     }
 
     /// Resumes all subscriber tasks with a `nil` value indicating the termination of the stream.
     public func finish() {
-        guard !subscriptions.isEmpty else {
+        let subs = subscriptions.withLock { $0 }
+
+        guard !subs.isEmpty else {
+            notifyNoSubscriptions()
             return
         }
 
-        for (_, continuation) in subscriptions {
+        for (_, continuation) in subs {
             continuation.finish()
         }
 
-        subscriptions.removeAll()
-        onNoSubscriptions?()
+        subscriptions.withLock {
+            $0.removeAll()
+        }
+
+        notifyNoSubscriptions()
     }
 
     private func terminate(_ id: UUID) {
-        guard !subscriptions.isEmpty else {
-            return
+        subscriptions.withLock {
+            $0[id] = nil
+
+            if $0.isEmpty {
+                notifyNoSubscriptions()
+            }
         }
+    }
 
-        subscriptions[id] = nil
-
-        if subscriptions.isEmpty {
-            onNoSubscriptions?()
+    private func notifyNoSubscriptions() {
+        onNoSubscriptions.withLock {
+            $0?()
         }
     }
 }
