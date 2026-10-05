@@ -75,12 +75,14 @@ public final class PassthroughAsyncThrowingSubject<Output: Sendable>: Sendable {
     }
 
     private func terminate(_ id: UUID) {
+        var empty: Bool = false
         subscriptions.withLock {
             $0[id] = nil
+            empty = $0.isEmpty
+        }
 
-            if $0.isEmpty {
-                notifyNoSubscriptions()
-            }
+        if empty {
+            notifyNoSubscriptions()
         }
     }
 
